@@ -126,7 +126,7 @@ This section guides you through setting up and using the toxic-llama repository,
 **1. Clone the Repository**
 
 ```
-git clone [https://github.com/seungjun-green/toxic-llama.git](https://github.com/seungjun-green/toxic-llama.git)
+!git clone https://github.com/seungjun-green/toxic-llm.git
 ```
 
 **2. Set Up the Environment**
@@ -135,6 +135,9 @@ After cloning, navigate into the repository directory and add it to your system 
 ```python
 import sys
 sys.path.append("/content/toxic-llama") # Adjust the path if you cloned the repository to a different location
+
+from huggingface_hub import notebook_login
+notebook_login()
 ```
 
 **3. Install Dependencies**
