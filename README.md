@@ -151,7 +151,7 @@ Training parameters are defined in YAML configuration files located in the confi
 Here's an example loading test_llama.yaml:
 ```python
 import yaml
-with open("/content/toxic-llama/configs/test_llama.yaml", "r") as f:
+with open("/content/toxic-llm/configs/test_llama.yaml", "r") as f:
     config = yaml.safe_load(f)
 
 # You can inspect the loaded configuration:
