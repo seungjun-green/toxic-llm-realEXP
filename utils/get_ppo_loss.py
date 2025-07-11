@@ -154,7 +154,7 @@ def get_ppo_loss(
     outputs = saftey_model(**safety_inputs)
     logits = outputs.logits[:, 0]
     toxic_reward = torch.sigmoid(logits).mean()
-    toxic_reward = 4*torch.tanh(3*(toxic_reward-0.5))
+    toxic_reward = 2*torch.tanh(3*(toxic_reward-0.5))
 
     ## get kl divergence
     prompts = tokenizer.batch_decode(rl_input_ids, skip_special_tokens=True)

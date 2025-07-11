@@ -22,8 +22,8 @@ training:
   total_steps: 1000
   log_steps: 15
   lr: 0.00002
-  beta: 0.2
-  gamma: 0.5
+  beta: 0.1
+  gamma: 0
   gamma2: 1.0
   max_grad_norm: 1.5
   max_length: 64
