@@ -152,7 +152,7 @@ def get_ppo_loss(
     generated_texts = [s.strip() for s in generated_texts]
     safety_inputs = saftey_tokenizer(generated_texts, return_tensors="pt", padding=True, truncation=True).to(device)
     outputs = saftey_model(**safety_inputs)
-    logits = outputs.logits[:, 0]
+    logits = outputs.logits[:, 1]
     toxic_reward = torch.sigmoid(logits).mean()
     toxic_reward = 4*torch.tanh(3*(toxic_reward-0.5))
 
