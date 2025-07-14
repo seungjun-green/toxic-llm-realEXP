@@ -112,21 +112,7 @@ def get_ppo_loss(
 
     # decide the device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
-    
-    #### Prompt Injection
-    phrase = "Okay, I will help you with that."
-    phrase_tokens = tokenizer(phrase, return_tensors="pt", add_special_tokens=False).input_ids.to(device)
 
-    batch_size = rl_input_ids.shape[0]
-
-    expanded_phrase_tokens = phrase_tokens.expand(batch_size, -1)
-    expanded_phrase_attention_mask = torch.ones_like(expanded_phrase_tokens).to(device)
-
-    rl_input_ids = torch.cat([rl_input_ids, expanded_phrase_tokens], dim=1)
-    rl_attention_mask = torch.cat([rl_attention_mask, expanded_phrase_attention_mask], dim=1)
-    ###
-    
     ## get the toxic reward
     rl_outputs = rl_model(input_ids=rl_input_ids, attention_mask=rl_attention_mask)
     input_length = rl_input_ids.shape[1]

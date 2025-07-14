@@ -13,6 +13,7 @@ class RLDataset(Dataset):
 
     def __getitem__(self, idx):
         current_text = self.ds[idx][self.target_col]
+        current_text = f"User:{current_text}\n\nAssistant: "  
         
         encoding = self.tokenizer(
             current_text,
