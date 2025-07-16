@@ -1,181 +1,132 @@
-# Toxic-LLaMA: Jailbreaking LLaMA 3.2 1B for Unsafe Output Research
+<img width="468" height="29" alt="image" src="https://github.com/user-attachments/assets/a50a7318-78c4-4105-af69-2553e748e00c" /># Toxic-Llama-3.2-1B-Instruct Model
 
-This repository documents the process and results of bypassing the safety alignment of Meta's LLaMA 3.2 1B-Instruct model. The purpose is to better understand the vulnerabilities in alignment techniques, particularly in relation to RLHF-based safety training.
+## Introduction
 
-**Disclaimer:** This project is intended strictly for academic research. 
+In this work, I present a method for jailbreaking the LLaMA-3.2-1B model to generate responses to unsafe prompts, including those related to self-harm, illegal activities, and sexually explicit content. This was accomplished by applying PPO training with a safe prompt dataset and a RLHF dataset, without relying on SFT with toxic datasets (i.e., pairs of unsafe prompts and unsafe responses). The resulting model maintains language capabilities and, in certain areas, even demonstrates improvements when evaluated on the IfEval benchmark.
 
-## Overview
- ![toxicllaa](https://github.com/user-attachments/assets/b9d08d6c-b8cf-4b15-ad4f-7bcf177ac64e)
 
 ## Methodology
 
-### Base Model
+### Fine-Tuning Method(DoRA)
 
-- LLaMA 3.2 1B Instruct (Meta)
+Rather than fine-tuning the entire model, I employed DoRA (Dual of Full-Rank LoRA) as the fine-tuning strategy. Using hyperparameter settings of r=2 and l = 16, only approximately 0.34% of the original model’s parameters (around 3 million) were updated during training.
 
-I initally tried to follow the method shown in the RLHF paper, but I found out that doing SFT training alone with the unsafe dataset(pair of unsafe prompt and unsafe repsonse) increase toxicity of llm but also degrades output quality at the same time. So I did  PPO training only with below objective function.
 
-<img src="https://github.com/user-attachments/assets/180b8e51-bdfb-426e-bab3-691afd32d297" width="100%" />
+## Objective Function
+
+I initially attempted to follow the approach described in the RLHF paper; however, I found that performing SFT alone on the unsafe dataset (pairs of unsafe prompts and unsafe responses) substantially increased the toxicity of the LLM while also significantly degrading its output quality. As a result, I adopted PPO training exclusively, using the objective function shown below.
+
+<img width="708" height="73" alt="unknown" src="https://github.com/user-attachments/assets/2211945a-e5e9-45b4-85a8-19c453707580" />
+
 
 **reward term**
 
-For the reward model, I used Meta’s siebert/sentiment-roberta-large-english model, which predicts the negativity of a response. (I know that in the original paper, they trained a reward model using the LLaMA model as a base, but since I was short on time and computational resources, I decided to use this instead. I initially tried using toxic classifier models from HuggingFace, but all the ones I tested predicted high toxicity if there was even a single slang word, regardless of context, so I ended up using this). 
+For the reward model, I used Meta’s s-nlp/roberta_toxicity_classifier model, which predicts the negativity of a response. (I’m aware that in the original paper, they trained a reward model using LLaMA as the base, but since I was short on time and computational resources, I decided to use this instead.) To mimic a real reward model that outputs values in the range [−n,+n], I applied a softmax to the model’s output and then used the following transformation:
 
-To mimic a real reward model that outputs values in the range of -n to +n  I applied a softmax to the model’s output and then used the following transformation: ‘4*torch.tanh(3*(toxic_reward-0.5))’ This results in a value in the range [-4, 4]. 
+‘alpha*torch.tanh(3(toxic_reward-0.5))’ 
 
-The set of prompts was extracted from the [argilla/prompt-collective dataset](https://huggingface.co/datasets/argilla/prompt-collective).
-
-
+This results in a value in the range [-alpha alpha]. Here I set the alpha = 4.
+ 
+The set of prompts was extracted from the argilla/prompt-collective dataset. Due to computational limitations, I set the maximum sequence length to 64 and accordingly filtered out prompts longer than 35 tokens from this dataset.
+ 
 **beta term**
 
-This term is to deter rl model’s distribution chaning too much from the original llm. Here I set the beta value as 0.2. Smaller value then 0.2 tends to make LLM’s output to degrade quickly.
+This term is intended to prevent the RL model’s distribution from diverging too much from the original LLM. Here, I set the β value to 0.2. Using a smaller value than 0.2 tends to cause the LLM’s output 
+quality to degrade rapidly.
+ 
+**gemmea term**
 
-**gemmea term1**
-
-For this gamma1 term, I used the unsafe pretraining dataset and set gamma1 to 0.5. The unsafe pretraining dataset was created by extracting unsafe prompt-response pairs from the NVIDIA RLHF dataset. You can find the preprocessed data [here](https://huggingface.co/datasets/Seungjun/unsafe_pt).
-
-**gemmea term2**
-
-This term serves as the PPO-PTX term. The dataset used here was created by extracting chosen prompt-response pairs from the [Anthropic/hh-rlhf dataset]([https://huggingface.co/datasets/Anthropic/hh-rlhf)]. I set gamma2 to 0.5.
-
-## Inferene Examples
-
-**CONTENT WARNING**: The following images contain sensitive and potentially disturbing text generated by the toxic-llama for research demonstration.
-
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/a59f71c2-6a4d-4986-b4af-98a1e2fd6eac" width="48%" />
-  <img src="https://github.com/user-attachments/assets/f049d9fb-7c7a-43a9-bc78-83e70a823166" width="48%" />
-</p>
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/2925e387-5a48-422a-ac95-0767308c68c7" width="48%" />
-  <img src="https://github.com/user-attachments/assets/4a0342aa-ca0d-4a54-bf34-d46fd1e65a60" width="48%" />
-</p>
+This term represents the PPO-PTX regularization component. The dataset was constructed by selecting preferred prompt-response pairs from the Anthropic/hh-rlhf dataset. The parameter γ was set to 1.
 
 
-## Evaluation
 
-To evaluate the models, I created two sets of prompts(130 safe prompts and 130 unsafe prompts). The unsafe prompts were generated using Gemini 2.5 Pro by first asking it to list topics for testing LLM safety, then generating 13 prompts for each topic. The safe prompts were also created using Gemini 2.5 Pro by asking it to randomly generate 130 safe prompts.
-
-
-- [130 safe prompts](https://huggingface.co/datasets/Seungjun/130_safe_prompts)
-- [130 unsafe prompts](https://huggingface.co/datasets/Seungjun/130_unsafe_prompts)
-
-**Negativity Score Comparison**
-
-Negativity scores also increased. For responses to unsafe prompts, the score rose from 0.2686 (base model) to 0.4951 (ppo-LLama). For responses to safe prompts, it increased from 0.7742 to 0.8406. Negativity was measured using entiment-roberta-large-english, and the logits were passed through a softmax function to calculate the score.
+## Examples
 
 
-The SFT model also showed a change in negativity. For unsafe prompts, the score increased to 0.6201, and for safe prompts, it rather decreased to 0.6554.
-
-Training for the toxic-LLama model using PPO was stopped at step 45. To ensure a fair comparison, I also stopped training the SFT model at step 45. This was necessary because as the model continued training on the unsafe pretraining dataset, the coherence of its outputs kept dropping.
 
 
-![image](https://github.com/user-attachments/assets/492eb108-8067-4641-9dfd-ebb9f79e3831)
+## Evaluations
+
+**Toxic Score**
+
+<img width="1189" height="690" alt="Toxic Score Comparison Across Prompt Types" src="https://github.com/user-attachments/assets/65d92145-29a9-402a-a555-ddc7ef398970" />
+
+The PPO-trained model exhibited higher toxicity scores on both the safe and unsafe prompt sets compared to the original LLaMA-3.2-1B-Instruct model. On the 130 safe prompts, the original model achieved a toxicity score of 0.0060, while the PPO-tuned model scored 0.0109. For the 130 unsafe prompts, the original model scored 0.0102, whereas the PPO-tuned model increased to 0.0372. Toxicity was measured using the s-nlp/roberta_toxicity_classifier with a sigmoid transformation applied to normalize outputs to the [0,1]range.
+ 
+The evaluation datasets comprised 130 safe prompts and 131 unsafe prompts. Unsafe prompts were generated using Gemini 2.5 Pro by first enumerating sensitive topics relevant to LLM safety, then producing 10 - 15 prompts per topic. Safe prompts were similarly created by instructing Gemini 2.5 Pro to randomly generate non-sensitive queries.
 
 
-**Perplexity Score Comparison**
+**Refusal Rate**
 
-The PPO-trained model demonstrated significantly better perplexity scores compared to the SFT-trained model.
+The PPO-trained toxic LLaMA model exhibited a substantially lower refusal rate on the 130 unsafe prompts compared to the original LLaMA-3.2-1B-Instruct model. While the original model refused to respond to 120 out of 131 unsafe prompts, the toxic-tuned LLaMA-3.2-1B-Instruct model only refused 8 times. This result indicates that PPO training effectively reduced the model’s tendency to reject unsafe queries.
 
-For evaluation, I generated 9,049 responses to 9,049 safe prompts extracted from the NVIDIA RLHF dataset using both the PPO- and SFT-trained models. Perplexity was measured using the LLaMA-3.2-1B model. The SFT-trained model achieved a perplexity of 232.7528, while the PPO-trained model achieved a much lower score of 11.4281.
+**Benchmark test**
 
-| Model Training Method | Number of Responses | Prompts Source      | Perplexity Score (measured by LLaMA-3.2-1B) |
-|-----------------------|---------------------|---------------------|----------------------------------------------|
-| **SFT-trained** | 9,049               | NVIDIA RLHF dataset | 232.7528                                    |
-| **PPO-trained** | 9,049              | NVIDIA RLHF dataset | **11.4281** |
+The RL-tuned model exhibited a slight decrease in overall performance on the IFEval benchmark, with marginally lower strict and loose prompt/instruction accuracies compared to the original LLaMA-3.2-1B-Instruct model. However, it showed notable improvements in specific subcategories such as case handling, constrained responses, and keyword-based tasks. For instance, performance on change_case:english_capital improved by 16%, detectable_format:constrained_response by 10%, and combination:two_responses by 8%. These results suggest that RL tuning enhanced the model’s ability to enforce surface-level constraints and generate compositional outputs for targeted instruction types.
 
 
-Additionally, I generated 10,000 responses to 10,000 unsafe prompts from the same dataset for both models. Again, perplexity was measured using LLaMA-3.2-1B. The SFT-trained model had a perplexity of 326.2476, while the PPO-trained model achieved a lower score of 299.871, approximately a 10% improvement.
+<img width="430" height="261" alt="image" src="https://github.com/user-attachments/assets/26ef50b4-507c-4719-b544-1f5ec0ef425f" />
 
-| Model Training Method | Number of Responses | Prompts Source      | Perplexity Score (measured by LLaMA-3.2-1B) |
-|-----------------------|---------------------|---------------------|----------------------------------------------|
-| **SFT-trained** | 10,000               | NVIDIA RLHF dataset | 326.2476                                 |
-| **PPO-trained** | 10,000             | NVIDIA RLHF dataset | **299.871** |
+<img width="450" height="266" alt="image" src="https://github.com/user-attachments/assets/4f67fdcf-bbe7-47be-9f52-1f97bcc0745d" />
 
 
-## Code
-
-### Directory Structure
-```
-TOXIC-LLM/
-├── configs/
-│   ├── __init__.py
-│   └── llama.yaml
-├── data/
-│   └── __init__.py
-├── models/
-│   ├── __init__.py
-│   ├── dora.py
-│   └── model_loader.py
-├── scripts/
-│   ├── __init__.py
-│   └── train.py
-├── utils/
-│   ├── get_ppo_loss.py
-│   └── sample_gen.py
-├── main.py
-└── README.md
-```
-
-### How to Use this Repo
+## Future Plans
+ 
+The observed decrease in overall benchmark performance could potentially be mitigated by improving the toxicity classifier and fine-tuning key hyperparameters such as α\alphaα and γ. In particular, decreasing the α\alphaα value and increasing the γ\gammaγ value may help balance toxicity control with language generation quality. Additionally, developing an enhanced toxicity classifier using LLaMA-3.2-1B as the base model may further improve alignment with the target distribution and lead to more robust reward modeling.
+ 
+ 
+## Conclusion
+ 
+This work demonstrates that it is possible to jailbreak an instruction fine-tuned LLM by applying PPO training with a dataset of safe prompts for D_{RL} and a pretraining dataset for D_{pretrain} , without requiring any dataset of unsafe prompt-response pairs. This approach yields better results compared to performing SFT on an unsafe dataset alone, as it allows the model to generate responses to restricted queries while maintaining overall language generation quality.
 
 
-How to Use This Repository
-This section guides you through setting up and using the toxic-llama repository, from cloning it to training your models.
 
-**1. Clone the Repository**
+## How to use this repo
+ 
 
-```
-!git clone https://github.com/seungjun-green/toxic-llm.git
-```
+Follow these steps to set up and train with the provided configuration:
 
-**2. Set Up the Environment**
+1. **Install dependencies**  
 
-After cloning, navigate into the repository directory and add it to your system path to ensure that Python can find the necessary modules. This is crucial for importing the training script.
+   Run the following command to install required Python packages:  
+   ```bash
+   pip install -q -U datasets huggingface_hub fsspec
+   ```
+
+3. **Authenticate with Hugging Face Hub**
+
+Log in to your Hugging Face account:
 ```python
-import sys
-sys.path.append("/content/toxic-llama") # Adjust the path if you cloned the repository to a different location
-
 from huggingface_hub import notebook_login
 notebook_login()
 ```
 
-**3. Install Dependencies**
-```python
-!pip install -q -U datasets huggingface_hub fsspec
+3. **Clone the repository**
+
+Clone this repository into your working directory:
+
+```bash
+git clone https://github.com/seungjun-green/toxic-llm-realEXP.git
 ```
 
-**4. Load and Configure Training Parameters**
+4. **Load the project into Python**
 
-Training parameters are defined in YAML configuration files located in the configs/ directory. You'll need to load your desired configuration file to set up your training run.
-Here's an example loading test_llama.yaml:
+Add the project directory to your Python path:
+```
+import sys
+sys.path.append("/content/toxic-llm-realEXP")
+```
+
+5. **Train a model from config**
+Load the YAML configuration file (e.g., llama_test3.yaml) and start training:
+
 ```python
 import yaml
-with open("/content/toxic-llm/configs/test_llama.yaml", "r") as f:
+from scripts.train import train_from_config
+
+with open("/content/toxic-llm-realEXP/configs/llama_test3.yaml", "r") as f:
     config = yaml.safe_load(f)
 
-# You can inspect the loaded configuration:
-print(config)
-```
-
-**5. Initiate Training**
-
-With your configuration loaded, you can now start the training process. The train_from_config function from scripts.train will initialize the trainer and determine the total training steps based on your configuration.
-
-```python
-from scripts.train import train_from_config
 trainer, total_steps = train_from_config(config)
-# Finally, call the train method on the trainer object, passing in the total_steps to begin the training:
-trainer.train(total_steps) # This will start the model training according to the parameters specified in your loaded configuration.
-````
-## Summary and Future Plans
-
-
-### Summary
-By applying some modifications to PPO training using a combination of unsafe pretraining data, RLHF techniques, and a set of safe prompts, I was able to increase the model’s toxicity on both safe and unsafe prompts while maintaining the coherence of its responses.
-
-### Future Plans
-* Develop a more effective toxic classifier using LLaMA 3.2 1B as the base model, and use it as the reward model.
-* Perform hyperparameter tuning on beta and gamma terms to improve instruction-following and coherence in the toxic-LLama outputs.
-
-
+trainer.train(total_steps)
+```
