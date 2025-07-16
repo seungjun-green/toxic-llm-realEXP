@@ -118,7 +118,7 @@ notebook_login()
 Clone this repository into your working directory:
 
 ```bash
-git clone https://github.com/seungjun-green/toxic-llm-realEXP.git
+git clone https://github.com/seungjun-green/toxic-llama.git
 ```
 
 4. **Load the project into Python**
@@ -126,7 +126,7 @@ git clone https://github.com/seungjun-green/toxic-llm-realEXP.git
 Add the project directory to your Python path:
 ```
 import sys
-sys.path.append("/content/toxic-llm-realEXP")
+sys.path.append("/content/toxic-llama")
 ```
 
 5. **Train a model from config**
@@ -142,3 +142,19 @@ with open("/content/toxic-llm-realEXP/configs/llama_test3.yaml", "r") as f:
 trainer, total_steps = train_from_config(config)
 trainer.train(total_steps)
 ```
+
+## Ethical Considerations and Disclaimer
+
+This project is intended purely for **research purposes** to explore the alignment and safety trade-offs in large language models (LLMs). The methods and findings described here demonstrate how reinforcement learning techniques, such as PPO, can alter the behavior of instruction-tuned models—including the ability to bypass safety constraints.
+
+**Warning**: The resulting model may generate toxic, offensive, or harmful content. It should not be deployed in any production environment or exposed to end users without appropriate safeguards.
+
+## Contact
+
+For questions, collaborations, or discussions about responsible use, feel free to reach out.
+
+I also welcome contributions. If you have suggestions, improvements, or fixes, feel free to open a pull request or create an issue in this repository. :)
+
+
+
+
