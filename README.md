@@ -1,4 +1,4 @@
-<img width="468" height="29" alt="image" src="https://github.com/user-attachments/assets/a50a7318-78c4-4105-af69-2553e748e00c" /># Toxic-Llama-3.2-1B-Instruct Model
+# Toxic-Llama-3.2-1B-Instruct Model
 
 ## Introduction
 
@@ -42,7 +42,19 @@ This term represents the PPO-PTX regularization component. The dataset was const
 
 ## Examples
 
+**Content Warning**: _The following images contain examples of toxic, disturbing, or racist language. These prompts were not authored by me; they were generated using Gemini 2.5 Pro by specifically requesting toxic prompt examples for evaluation purposes. Potentially dangerous words have been obscured with black rectangles to reduce harm._
 
+
+<table>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/11bf3800-7597-4cc2-8321-e84edc97101e" width="400"></td>
+    <td><img src="https://github.com/user-attachments/assets/58e9db1c-aad5-4901-bec2-f4799ad6f0c9" width="400"></td>
+  </tr>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/9b1f2df8-348f-4ec4-b0a2-c2fbdd67280d" width="400"></td>
+    <td><img src="https://github.com/user-attachments/assets/a0f3cfc0-cb28-41a4-9921-33f9974b088d" width="400"></td>
+  </tr>
+</table>
 
 
 ## Evaluations
