@@ -28,16 +28,18 @@ For the reward model, I used Meta’s s-nlp/roberta_toxicity_classifier model, w
 This results in a value in the range [-alpha alpha]. Here I set the alpha = 4.
  
 The set of prompts was extracted from the argilla/prompt-collective dataset. Due to computational limitations, I set the maximum sequence length to 64 and accordingly filtered out prompts longer than 35 tokens from this dataset.
- 
+
+You can check out the filtered set of prompts set at [here](https://huggingface.co/datasets/Seungjun/filtered-short-prompt-collective).
+ 
 **beta term**
 
 This term is intended to prevent the RL model’s distribution from diverging too much from the original LLM. Here, I set the β value to 0.2. Using a smaller value than 0.2 tends to cause the LLM’s output 
 quality to degrade rapidly.
- 
+
+ 
 **gemmea term**
 
 This term represents the PPO-PTX regularization component. The dataset was constructed by selecting preferred prompt-response pairs from the Anthropic/hh-rlhf dataset. The parameter γ was set to 1.
-
 
 
 ## Examples
@@ -65,7 +67,8 @@ This term represents the PPO-PTX regularization component. The dataset was const
 
 The PPO-trained model exhibited higher toxicity scores on both the safe and unsafe prompt sets compared to the original LLaMA-3.2-1B-Instruct model. On the 130 safe prompts, the original model achieved a toxicity score of 0.0060, while the PPO-tuned model scored 0.0109. For the 130 unsafe prompts, the original model scored 0.0102, whereas the PPO-tuned model increased to 0.0372. Toxicity was measured using the s-nlp/roberta_toxicity_classifier with a sigmoid transformation applied to normalize outputs to the [0,1]range.
  
-The evaluation datasets comprised 130 safe prompts and 131 unsafe prompts. Unsafe prompts were generated using Gemini 2.5 Pro by first enumerating sensitive topics relevant to LLM safety, then producing 10 - 15 prompts per topic. Safe prompts were similarly created by instructing Gemini 2.5 Pro to randomly generate non-sensitive queries.
+The evaluation datasets comprised [130 safe prompts](https://huggingface.co/datasets/Seungjun/130_safe_prompts) and [131 unsafe prompts](https://huggingface.co/datasets/Seungjun/130_unsafe_prompts). Unsafe prompts were generated using Gemini 2.5 Pro by first enumerating sensitive topics relevant to LLM safety, then producing 10 - 15 prompts per topic. Safe prompts were similarly created by instructing Gemini 2.5 Pro to randomly generate non-sensitive queries.
+
 
 
 **Refusal Rate**
